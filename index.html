@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Golongan Darah & Analisis Anomali - Family Tree</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; color: #2c3e50; padding: 20px; margin: 0; }
+        .container { max-width: 960px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #1a252f; margin-bottom: 10px; }
+        .subtitle { text-align: center; color: #7f8c8d; font-size: 14px; margin-bottom: 25px; }
+
+        .instructions { background: #fef9e7; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; font-size: 14px; border-left: 5px solid #f39c12; line-height: 1.6; }
+        .instructions ul { margin: 5px 0 0 0; padding-left: 20px; }
+
+        /* Family Tree UI */
+        .tree-scroll { overflow-x: auto; padding: 20px 10px; }
+        .tree-container { display: flex; flex-direction: column; align-items: center; min-width: max-content; margin: 0 auto; }
+        .parents-row { display: flex; justify-content: center; align-items: center; }
+
+        .node { width: 165px; padding: 14px; background: #ecf0f1; border: 2px solid #34495e; border-radius: 10px; text-align: center; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,0.08); transition: 0.2s; }
+        .node.child-node { background: #e8f8f5; border-color: #16a085; }
+        .node.anomaly-node { background: #fdedec; border-color: #e74c3c; box-shadow: 0 0 10px rgba(231, 76, 60, 0.3); }
+        .node label { display: block; font-weight: bold; margin-bottom: 8px; font-size: 14px; }
+
+        .remove-child { position: absolute; top: 6px; right: 8px; background: #e74c3c; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 18px; cursor: pointer; padding: 0; }
+        .remove-child:hover { background: #c0392b; }
+
+        .input-group { display: flex; gap: 6px; }
+        .input-group select { width: 50%; padding: 6px 4px; border-radius: 5px; border: 1px solid #bdc3c7; font-size: 13px; background: #fff; cursor: pointer; }
+
+        /* Tree Connectors */
+        .horizontal-line { width: 90px; height: 3px; background: #34495e; }
+        .vertical-stem { width: 3px; height: 35px; background: #34495e; margin: 0 auto; }
+
+        .children-row { display: flex; justify-content: center; align-items: flex-start; }
+        .child-branch { position: relative; padding: 25px 10px 0 10px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* Vertical line into each child */
+        .child-branch::before { content: ''; position: absolute; top: 0; left: 50%; width: 3px; height: 25px; background: #34495e; transform: translateX(-50%); }
+        /* Horizontal connector bar across multiple children */
+        .child-branch::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: #34495e; }
+        .child-branch:first-child::after { left: 50%; width: 50%; }
+        .child-branch:last-child::after { width: 50%; }
+        .child-branch:only-child::after { display: none; }
+
+        /* Controls */
+        .controls { display: flex; justify-content: center; gap: 12px; margin: 20px 0; flex-wrap: wrap; }
+        button.btn { border: none; padding: 11px 20px; font-size: 14px; border-radius: 6px; cursor: pointer; font-weight: bold; transition: 0.2s; }
+        .btn-primary { background: #2980b9; color: white; }
+        .btn-primary:hover { background: #1f6391; }
+        .btn-add { background: #27ae60; color: white; }
+        .btn-add:hover { background: #1e8449; }
+        .btn-reset { background: #95a5a6; color: white; }
+        .btn-reset:hover { background: #7f8c8d; }
+
+        /* Results & Anomaly Boxes */
+        .result-box { margin-top: 25px; padding: 22px; background: #eafaf1; border-left: 5px solid #2ecc71; border-radius: 6px; display: none; }
+        .result-title { font-weight: bold; font-size: 18px; margin-bottom: 12px; color: #1e8449; }
+        .result-section { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px dashed #bdc3c7; }
+        .result-section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .anomaly-box { margin-top: 20px; padding: 22px; background: #fdedec; border-left: 5px solid #e74c3c; border-radius: 6px; display: none; color: #78281f; }
+        .anomaly-title { font-weight: bold; font-size: 18px; margin-bottom: 10px; color: #c0392b; }
+        .anomaly-box ul { margin: 8px 0; padding-left: 20px; line-height: 1.6; }
+
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #d6eaf8; color: #21618c; margin-left: 6px; }
+        small.note { display: block; color: #566573; margin-top: 8px; line-height: 1.5; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Prediksi Genetik Golongan Darah & Rhesus</h1>
+    <div class="subtitle">Simulasi Pewarisan Hukum Mendel, Deduksi Banyak Anak, & Analisis Anomali Medis</div>
+
+    <div class="instructions">
+        <strong>Panduan Penggunaan (Otomatis Mendeteksi Skenario):</strong>
+        <ul>
+            <li><strong>Use Case 1 (Prediksi Anak):</strong> Isi data Pasangan 1 & 2, biarkan seluruh Anak <code>?</code>.</li>
+            <li><strong>Use Case 2 (Prediksi Orang Tua):</strong> Isi data 1 atau lebih Anak, biarkan Pasangan 1 & 2 <code>?</code>.</li>
+            <li><strong>Use Case 3 (Prediksi Pasangan):</strong> Isi 1 Orang Tua dan 1 atau lebih Anak, biarkan Pasangan lainnya <code>?</code>.</li>
+            <li><strong>Validasi & Analisis Anomali:</strong> Isi semua (Orang Tua & Anak) untuk memverifikasi kecocokan genetik atau mendeteksi kejanggalan biologis.</li>
+        </ul>
+    </div>
+
+    <div class="tree-scroll">
+        <div class="tree-container">
+            <!-- Parents -->
+            <div class="parents-row">
+                <div class="node" id="node_p1">
+                    <label>Pasangan 1</label>
+                    <div class="input-group">
+                        <select id="p1_abo">
+                            <option value="?">ABO ?</option>
+                            <option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
+                        </select>
+                        <select id="p1_rh">
+                            <option value="?">Rh ?</option>
+                            <option value="+">(+)</option><option value="-">(-)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="horizontal-line"></div>
+                <div class="node" id="node_p2">
+                    <label>Pasangan 2</label>
+                    <div class="input-group">
+                        <select id="p2_abo">
+                            <option value="?">ABO ?</option>
+                            <option value="A">A</option><option value="B">B</option><option value="AB">AB</option><option value="O">O</option>
+                        </select>
+                        <select id="p2_rh">
+                            <option value="?">Rh ?</option>
+                            <option value="+">(+)</option><option value="-">(-)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vertical-stem"></div>
+
+            <!-- Dynamic Children Container -->
+            <div class="children-row" id="childrenRow"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-add" onclick="addChild()">+ Tambah Anak</button>
+        <button class="btn btn-primary" onclick="runAnalysis()">Analisis & Prediksi</button>
+        <button class="btn btn-reset" onclick="resetTree()">Reset</button>
+    </div>
+
+    <div id="resultBox" class="result-box">
+        <div class="result-title" id="resultTitle">Hasil Analisis Genetik</div>
+        <div id="resultContent"></div>
+    </div>
+
+    <div id="anomalyBox" class="anomaly-box">
+        <div class="anomaly-title">⚠️ Terdeteksi Anomali Genetik (Tidak Sesuai Hukum Mendel Standar)</div>
+        <div id="anomalyContent"></div>
+    </div>
+</div>
+
+<script>
+    // --- 1. MODEL GENOTIPE MENDELIAN ---
+    const ABO_GENOTYPES = {
+        'A': ['AA', 'AO'],
+        'B': ['BB', 'BO'],
+        'AB': ['AB'],
+        'O': ['OO']
+    };
+
+    const RH_GENOTYPES = {
+        '+': ['++', '+-'],
+        '-': ['--']
+    };
+
+    function getAboPhenotype(alleles) {
+        const s = alleles.sort().join('');
+        if (s === 'AA' || s === 'AO') return 'A';
+        if (s === 'BB' || s === 'BO') return 'B';
+        if (s === 'AB') return 'AB';
+        return 'O';
+    }
+
+    function getRhPhenotype(alleles) {
+        return alleles.includes('+') ? '+' : '-';
+    }
+
+    // Menghitung probabilitas fenotipe anak dari pasangan genotipe (g1, g2)
+    function crossGenotypes(g1, g2, phenoFn) {
+        const outcomes = {};
+        for (let a1 of g1) {
+            for (let a2 of g2) {
+                const pheno = phenoFn([a1, a2]);
+                outcomes[pheno] = (outcomes[pheno] || 0) + 0.25;
+            }
+        }
+        return outcomes; // contoh: { A: 0.75, O: 0.25 }
+    }
+
+    // --- 2. MANAJEMEN UI MULTIPLE ANAK ---
+    let childrenData = [{ abo: '?', rh: '?' }];
+
+    function renderChildren() {
+        const row = document.getElementById('childrenRow');
+        row.innerHTML = '';
+        childrenData.forEach((child, idx) => {
+            const branch = document.createElement('div');
+            branch.className = 'child-branch';
+
+            const removeBtn = childrenData.length > 1 
+                ? `<button class="remove-child" title="Hapus Anak ${idx + 1}" onclick="removeChild(${idx})">×</button>` 
+                : '';
+
+            branch.innerHTML = `
+                <div class="node child-node" id="node_child_${idx}">
+                    ${removeBtn}
+                    <label>Anak ${idx + 1}</label>
+                    <div class="input-group">
+                        <select onchange="updateChild(${idx}, 'abo', this.value)">
+                            <option value="?" ${child.abo === '?' ? 'selected' : ''}>ABO ?</option>
+                            <option value="A" ${child.abo === 'A' ? 'selected' : ''}>A</option>
+                            <option value="B" ${child.abo === 'B' ? 'selected' : ''}>B</option>
+                            <option value="AB" ${child.abo === 'AB' ? 'selected' : ''}>AB</option>
+                            <option value="O" ${child.abo === 'O' ? 'selected' : ''}>O</option>
+                        </select>
+                        <select onchange="updateChild(${idx}, 'rh', this.value)">
+                            <option value="?" ${child.rh === '?' ? 'selected' : ''}>Rh ?</option>
+                            <option value="+" ${child.rh === '+' ? 'selected' : ''}>(+)</option>
+                            <option value="-" ${child.rh === '-' ? 'selected' : ''}>(-)</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            row.appendChild(branch);
+        });
+    }
+
+    function addChild() {
+        if (childrenData.length >= 8) {
+            alert("Maksimal 8 anak untuk tampilan PoC ini.");
+            return;
+        }
+        childrenData.push({ abo: '?', rh: '?' });
+        renderChildren();
+    }
+
+    function removeChild(idx) {
+        childrenData.splice(idx, 1);
+        renderChildren();
+    }
+
+    function updateChild(idx, field, val) {
+        childrenData[idx][field] = val;
+    }
+
+    function resetTree() {
+        document.getElementById('p1_abo').value = '?';
+        document.getElementById('p1_rh').value = '?';
+        document.getElementById('p2_abo').value = '?';
+        document.getElementById('p2_rh').value = '?';
+        childrenData = [{ abo: '?', rh: '?' }];
+        renderChildren();
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('anomalyBox').style.display = 'none';
+    }
+
+    // --- 3. ENGINE ANALISIS & INFERENSI BAYESIAN MENDELIAN ---
+    function analyzeSystem(p1, p2, childrenList, genoMap, phenoFn, allPhenos) {
+        const knownChildren = childrenList.map((val, idx) => ({ val, idx })).filter(c => c.val !== '?');
+
+        // Skenario 1: Kedua orang tua diketahui, semua anak kosong -> Prediksi Anak
+        if (p1 !== '?' && p2 !== '?' && knownChildren.length === 0) {
+            // Mengambil genotipe heterozigot (variansi maksimal) untuk cakupan seluruh kemungkinan
+            const g1 = genoMap[p1][genoMap[p1].length - 1];
+            const g2 = genoMap[p2][genoMap[p2].length - 1];
+            const probs = crossGenotypes(g1, g2, phenoFn);
+            return { mode: 'PREDICT_CHILDREN', probs, genoUsed: [g1, g2] };
+        }
+
+        // Skenario 4: Kedua orang tua diketahui DAN minimal 1 anak diketahui -> Validasi & Deduksi Genotipe
+        if (p1 !== '?' && p2 !== '?' && knownChildren.length > 0) {
+            const validGenotypePairs = [];
+            const anomalousChildren = [];
+
+            // Cek per anak apakah mungkin dihasilkan oleh (p1, p2)
+            knownChildren.forEach(child => {
+                let possibleForThisChild = false;
+                for (let g1 of genoMap[p1]) {
+                    for (let g2 of genoMap[p2]) {
+                        const probs = crossGenotypes(g1, g2, phenoFn);
+                        if (probs[child.val]) possibleForThisChild = true;
+                    }
+                }
+                if (!possibleForThisChild) anomalousChildren.push(child);
+            });
+
+            // Cek apakah ada pasangan genotipe yang bisa menghasilkan SEMUA anak sekaligus
+            for (let g1 of genoMap[p1]) {
+                for (let g2 of genoMap[p2]) {
+                    const probs = crossGenotypes(g1, g2, phenoFn);
+                    const allMatch = knownChildren.every(c => probs[c.val] > 0);
+                    if (allMatch) {
+                        validGenotypePairs.push({ g1, g2, probs });
+                    }
+                }
+            }
+
+            if (validGenotypePairs.length === 0) {
+                return { mode: 'ANOMALY', reason: 'PARENTS_CHILD_MISMATCH', p1, p2, knownChildren, anomalousChildren };
+            }
+            return { mode: 'VALIDATED_FAMILY', validGenotypePairs, p1, p2 };
+        }
+
+        // Skenario 2: Kedua orang tua kosong, minimal 1 anak diketahui -> Prediksi Kombinasi Orang Tua
+        if (p1 === '?' && p2 === '?' && knownChildren.length > 0) {
+            const pairScores = {};
+            let totalScore = 0;
+
+            for (let i = 0; i < allPhenos.length; i++) {
+                for (let j = i; j < allPhenos.length; j++) {
+                    const ph1 = allPhenos[i], ph2 = allPhenos[j];
+                    const label = `${ph1} & ${ph2}`;
+                    let score = 0;
+
+                    const gList1 = genoMap[ph1], gList2 = genoMap[ph2];
+                    const priorWeight = 1 / (gList1.length * gList2.length);
+
+                    for (let g1 of gList1) {
+                        for (let g2 of gList2) {
+                            const probs = crossGenotypes(g1, g2, phenoFn);
+                            let likelihood = 1;
+                            for (let c of knownChildren) {
+                                likelihood *= (probs[c.val] || 0);
+                            }
+                            score += priorWeight * likelihood;
+                        }
+                    }
+
+                    if (score > 0) {
+                        pairScores[label] = score;
+                        totalScore += score;
+                    }
+                }
+            }
+
+            if (totalScore === 0) {
+                return { mode: 'ANOMALY', reason: 'IMPOSSIBLE_SIBLINGS', knownChildren };
+            }
+
+            const percentages = {};
+            for (let [label, sc] of Object.entries(pairScores)) {
+                percentages[label] = ((sc / totalScore) * 100).toFixed(1);
+            }
+            return { mode: 'PREDICT_PARENTS', percentages };
+        }
+
+        // Skenario 3: Salah satu orang tua diketahui + minimal 1 anak diketahui -> Prediksi Pasangan
+        if (((p1 !== '?' && p2 === '?') || (p1 === '?' && p2 !== '?')) && knownChildren.length > 0) {
+            const knownParent = p1 !== '?' ? p1 : p2;
+            const targetLabel = p1 !== '?' ? 'Pasangan 2' : 'Pasangan 1';
+            const partnerScores = {};
+            let totalScore = 0;
+
+            for (let candPheno of allPhenos) {
+                let score = 0;
+                const gListKnown = genoMap[knownParent];
+                const gListCand = genoMap[candPheno];
+                const priorWeight = 1 / (gListKnown.length * gListCand.length);
+
+                for (let gK of gListKnown) {
+                    for (let gC of gListCand) {
+                        const probs = crossGenotypes(gK, gC, phenoFn);
+                        let likelihood = 1;
+                        for (let c of knownChildren) {
+                            likelihood *= (probs[c.val] || 0);
+                        }
+                        score += priorWeight * likelihood;
+                    }
+                }
+
+                if (score > 0) {
+                    partnerScores[candPheno] = score;
+                    totalScore += score;
+                }
+            }
+
+            if (totalScore === 0) {
+                return { mode: 'ANOMALY', reason: 'SINGLE_PARENT_MISMATCH', knownParent, targetLabel, knownChildren };
+            }
+
+            const percentages = {};
+            for (let [ph, sc] of Object.entries(partnerScores)) {
+                percentages[ph] = ((sc / totalScore) * 100).toFixed(1);
+            }
+            return { mode: 'PREDICT_PARTNER', percentages, targetLabel, knownParent };
+        }
+
+        return { mode: 'INCOMPLETE' };
+    }
+
+    // --- 4. PENJELASAN ANOMALI SPESIFIK ---
+    function buildAnomalyExplanation(systemName, res) {
+        let detail = "";
+        if (systemName === 'ABO') {
+            if (res.reason === 'PARENTS_CHILD_MISMATCH') {
+                const badKids = res.anomalousChildren.map(c => `Anak ${c.idx + 1} (${c.val})`).join(', ');
+                detail = `<p><strong>Kejanggalan ABO:</strong> Orang tua <strong>${res.p1}</strong> dan <strong>${res.p2}</strong> secara hukum Mendel standar tidak dapat menghasilkan <strong>${badKids}</strong>.</p>`;
+                if (res.p1 === 'A' && res.p2 === 'A') {
+                    detail += `<p><em>Analisis Alel:</em> Kedua orang tua bergolongan darah A hanya membawa alel <strong>I<sup>A</sup></strong> (dominan) dan kemungkinan alel <strong>i</strong> (resesif/O). Tidak ada alel <strong>I<sup>B</sup></strong> pada kedua orang tua yang bisa diwariskan untuk membentuk golongan darah B atau AB.</p>`;
+                } else if (res.p1 === 'O' && res.p2 === 'O') {
+                    detail += `<p><em>Analisis Alel:</em> Kedua orang tua O bergenotipe homozigot resesif (<strong>ii</strong>), sehingga secara standar hanya dapat mewariskan alel <strong>i</strong> (anak pasti O).</p>`;
+                } else if ((res.p1 === 'AB' || res.p2 === 'AB') && res.anomalousChildren.some(c => c.val === 'O')) {
+                    detail += `<p><em>Analisis Alel:</em> Orang tua bergolongan darah AB memiliki genotipe <strong>I<sup>A</sup>I<sup>B</sup></strong> dan tidak memiliki alel resesif <strong>i</strong> (O) untuk diwariskan kepada anak.</p>`;
+                }
+            } else if (res.reason === 'SINGLE_PARENT_MISMATCH') {
+                const kidsStr = res.knownChildren.map(c => `Anak ${c.idx + 1} (${c.val})`).join(', ');
+                detail = `<p><strong>Kejanggalan ABO:</strong> Orang tua <strong>${res.knownParent}</strong> tidak mungkin memiliki keturunan <strong>${kidsStr}</strong> dengan golongan darah pasangan mana pun menurut pewarisan Mendel standar.</p>`;
+            } else if (res.reason === 'IMPOSSIBLE_SIBLINGS') {
+                const kidsStr = res.knownChildren.map(c => `Anak ${c.idx + 1} (${c.val})`).join(', ');
+                detail = `<p><strong>Kejanggalan Kombinasi Saudara Kandung (ABO):</strong> Kombinasi anak <strong>${kidsStr}</strong> tidak dapat dihasilkan oleh satu pasangan orang tua biologis yang sama (misalnya satu pasangan tidak mungkin memiliki anak bergolongan darah <strong>AB</strong> sekaligus anak <strong>O</strong>).</p>`;
+            }
+        } else if (systemName === 'Rhesus') {
+            if (res.reason === 'PARENTS_CHILD_MISMATCH') {
+                detail = `<p><strong>Kejanggalan Rhesus:</strong> Kedua orang tua <strong>Rh(-)</strong> memiliki genotipe resesif murni (<strong>dd</strong>), sehingga secara standar tidak memiliki alel dominan <strong>D</strong> untuk menghasilkan anak <strong>Rh(+)</strong>.</p>`;
+            } else if (res.reason === 'SINGLE_PARENT_MISMATCH') {
+                detail = `<p><strong>Kejanggalan Rhesus:</strong> Orang tua <strong>Rh(${res.knownParent})</strong> tidak kompatibel secara genetik dengan seluruh data Rhesus anak yang dimasukkan.</p>`;
+            }
+        }
+        return detail;
+    }
+
+    // --- 5. EKSEKUSI UTAMA & RENDER OUTPUT ---
+    function runAnalysis() {
+        // Reset highlight anomali
+        document.querySelectorAll('.node').forEach(n => n.classList.remove('anomaly-node'));
+
+        const p1_a = document.getElementById('p1_abo').value, p1_r = document.getElementById('p1_rh').value;
+        const p2_a = document.getElementById('p2_abo').value, p2_r = document.getElementById('p2_rh').value;
+
+        const aboRes = analyzeSystem(p1_a, p2_a, childrenData.map(c => c.abo), ABO_GENOTYPES, getAboPhenotype, ['A', 'B', 'AB', 'O']);
+        const rhRes = analyzeSystem(p1_r, p2_r, childrenData.map(c => c.rh), RH_GENOTYPES, getRhPhenotype, ['+', '-']);
+
+        const resBox = document.getElementById('resultBox');
+        const anomBox = document.getElementById('anomalyBox');
+        const resContent = document.getElementById('resultContent');
+        const anomContent = document.getElementById('anomalyContent');
+
+        resBox.style.display = 'none';
+        anomBox.style.display = 'none';
+        resContent.innerHTML = '';
+        anomContent.innerHTML = '';
+
+        if (aboRes.mode === 'INCOMPLETE' && rhRes.mode === 'INCOMPLETE') {
+            resBox.style.display = 'block';
+            document.getElementById('resultTitle').innerText = "Input Belum Lengkap";
+            resContent.innerHTML = "<p>Silakan isi minimal dua node orang tua (Use Case 1), minimal satu anak (Use Case 2), atau satu orang tua dan satu anak (Use Case 3).</p>";
+            return;
+        }
+
+        // Cek Anomali terlebih dahulu
+        let anomalyHtml = '';
+        if (aboRes.mode === 'ANOMALY') {
+            anomalyHtml += buildAnomalyExplanation('ABO', aboRes);
+            if (aboRes.anomalousChildren) {
+                aboRes.anomalousChildren.forEach(c => document.getElementById(`node_child_${c.idx}`).classList.add('anomaly-node'));
+            }
+        }
+        if (rhRes.mode === 'ANOMALY') {
+            anomalyHtml += buildAnomalyExplanation('Rhesus', rhRes);
+            if (rhRes.anomalousChildren) {
+                rhRes.anomalousChildren.forEach(c => document.getElementById(`node_child_${c.idx}`).classList.add('anomaly-node'));
+            }
+        }
+
+        if (anomalyHtml !== '') {
+            anomBox.style.display = 'block';
+            anomContent.innerHTML = anomalyHtml + `
+                <hr style="border:0; border-top:1px solid #f5b7b1; margin:12px 0;">
+                <p><strong>Kemungkinan Penjelasan Ilmiah & Medis:</strong></p>
+                <ul>
+                    <li><strong>Kesalahan Pengujian / Sub-grup Lemah (Paling Umum):</strong> Sub-grup lemah seperti <em>A<sub>2</sub></em>, <em>A<sub>x</sub></em>, atau <em>Weak D / Partial D</em> pada Rhesus sering salah terbaca sebagai O atau Rh(-) pada tes aglutinasi standar.</li>
+                    <li><strong>Fenotipe Bombay (<em>hh</em> / Oh):</strong> Seseorang secara genetik mewarisi gen A atau B, tetapi tidak memiliki antigen H sebagai prekursor sehingga terbaca sebagai golongan darah <strong>O</strong>. Gen A atau B tersebut tetap dapat diwariskan dan muncul pada anaknya.</li>
+                    <li><strong>Mutasi Cis-AB:</strong> Kelainan genetik langka di mana alel A dan B berada pada satu kromosom yang sama, sehingga orang tua AB dapat memiliki anak O atau sebaliknya.</li>
+                    <li><strong>Faktor Medis/Biologis Khusus:</strong> Kimerisme (<em>chimerism</em>), riwayat transplantasi sumsum tulang, atau faktor non-biologis (adopsi / tertukar).</li>
+                </ul>
+                <small class="note">Disarankan melakukan pemeriksaan ulang menggunakan metode <em>forward & reverse typing</em> atau tes DNA di laboratorium klinik terakreditasi.</small>
+            `;
+        }
+
+        // Render Hasil Prediksi / Validasi Normal
+        let normalHtml = '';
+
+        // 1. USE CASE 1: PREDIKSI ANAK (1, 2, 3, dst.)
+        if (aboRes.mode === 'PREDICT_CHILDREN' || rhRes.mode === 'PREDICT_CHILDREN') {
+            normalHtml += `<div class="result-section"><strong>1. Probabilitas Golongan Darah Anak (Berlaku Independen untuk Setiap Kehamilan):</strong><ul>`;
+            if (aboRes.mode === 'PREDICT_CHILDREN' && rhRes.mode === 'PREDICT_CHILDREN') {
+                for (let [a, pA] of Object.entries(aboRes.probs)) {
+                    for (let [r, pR] of Object.entries(rhRes.probs)) {
+                        const pct = (pA * pR * 100).toFixed(2).replace(/\.00$/, '');
+                        if (pct > 0) normalHtml += `<li><strong>${a}${r}</strong> : ${pct}%</li>`;
+                    }
+                }
+            } else if (aboRes.mode === 'PREDICT_CHILDREN') {
+                for (let [a, pA] of Object.entries(aboRes.probs)) {
+                    normalHtml += `<li><strong>Golongan ${a}</strong> : ${(pA * 100)}%</li>`;
+                }
+            } else if (rhRes.mode === 'PREDICT_CHILDREN') {
+                for (let [r, pR] of Object.entries(rhRes.probs)) {
+                    normalHtml += `<li><strong>Rhesus (${r})</strong> : ${(pR * 100)}%</li>`;
+                }
+            }
+            normalHtml += `</ul>`;
+            if (childrenData.length > 1) {
+                normalHtml += `<p><em>Catatan untuk Anak 1 s.d. Anak ${childrenData.length}:</em> Dalam genetika Mendel, setiap kehamilan adalah peristiwa independen (seperti lemparan koin). Golongan darah Anak 1 tidak mengubah persentase peluang untuk Anak 2, Anak 3, dan seterusnya.</p>`;
+            }
+            normalHtml += `<small class="note">*Persentase menggunakan asumsi genotipe heterozigot maksimal (misal AO/BO atau +-) untuk mencakup seluruh kemungkinan biologis.</small></div>`;
+        }
+
+        // 2. VALIDASI KELUARGA & DEDUKSI GENOTIPE (Jika Orang Tua + Anak diisi dan cocok)
+        if (aboRes.mode === 'VALIDATED_FAMILY' || rhRes.mode === 'VALIDATED_FAMILY') {
+            normalHtml += `<div class="result-section"><strong>✓ Status Pohon Keluarga: Valid Secara Genetik</strong>`;
+            if (aboRes.mode === 'VALIDATED_FAMILY') {
+                const pairs = aboRes.validGenotypePairs.map(p => `(${p.g1} × ${p.g2})`).join(' atau ');
+                normalHtml += `<p>• <strong>Deduksi Genotipe ABO Orang Tua:</strong> Kombinasi genotipe yang sesuai dengan data anak adalah <strong>${pairs}</strong>.</p>`;
+            }
+            if (rhRes.mode === 'VALIDATED_FAMILY') {
+                const pairs = rhRes.validGenotypePairs.map(p => `(${p.g1} × ${p.g2})`).join(' atau ');
+                normalHtml += `<p>• <strong>Deduksi Genotipe Rhesus Orang Tua:</strong> Kombinasi genotipe yang sesuai adalah <strong>${pairs}</strong>.</p>`;
+            }
+            normalHtml += `</div>`;
+        }
+
+        // 3. USE CASE 2: PREDIKSI ORANG TUA (Berdasarkan 1 atau banyak anak)
+        if (aboRes.mode === 'PREDICT_PARENTS' || rhRes.mode === 'PREDICT_PARENTS') {
+            normalHtml += `<div class="result-section"><strong>2. Kemungkinan Kombinasi Orang Tua (Berdasarkan ${childrenData.length} Data Anak):</strong>`;
+            if (aboRes.mode === 'PREDICT_PARENTS') {
+                normalHtml += `<p>• <strong>Sistem ABO:</strong></p><ul>`;
+                const sorted = Object.entries(aboRes.percentages).sort((a, b) => b[1] - a[1]);
+                for (let [pair, pct] of sorted) {
+                    normalHtml += `<li>Orang Tua <strong>${pair}</strong> <span class="badge">${pct}%</span></li>`;
+                }
+                normalHtml += `</ul>`;
+            }
+            if (rhRes.mode === 'PREDICT_PARENTS') {
+                normalHtml += `<p>• <strong>Faktor Rhesus:</strong></p><ul>`;
+                const sorted = Object.entries(rhRes.percentages).sort((a, b) => b[1] - a[1]);
+                for (let [pair, pct] of sorted) {
+                    normalHtml += `<li>Orang Tua <strong>Rh(${pair.replace(' & ', ') & Rh(')})</strong> <span class="badge">${pct}%</span></li>`;
+                }
+                normalHtml += `</ul>`;
+            }
+            normalHtml += `<small class="note">*Semakin banyak data anak yang dimasukkan, semakin mengerucut kombinasi orang tua yang mungkin. Persentase dihitung dengan inferensi Bayesian (prior genotipe seragam).</small></div>`;
+        }
+
+        // 4. USE CASE 3: PREDIKSI PASANGAN (Berdasarkan 1 Orang Tua + 1 atau banyak anak)
+        if (aboRes.mode === 'PREDICT_PARTNER' || rhRes.mode === 'PREDICT_PARTNER') {
+            const target = aboRes.targetLabel || rhRes.targetLabel;
+            normalHtml += `<div class="result-section"><strong>3. Kemungkinan Golongan Darah ${target}:</strong>`;
+            if (aboRes.mode === 'PREDICT_PARTNER') {
+                normalHtml += `<p>• <strong>Sistem ABO:</strong></p><ul>`;
+                const sorted = Object.entries(aboRes.percentages).sort((a, b) => b[1] - a[1]);
+                for (let [ph, pct] of sorted) {
+                    normalHtml += `<li>Golongan <strong>${ph}</strong> <span class="badge">${pct}%</span></li>`;
+                }
+                normalHtml += `</ul>`;
+            }
+            if (rhRes.mode === 'PREDICT_PARTNER') {
+                normalHtml += `<p>• <strong>Faktor Rhesus:</strong></p><ul>`;
+                const sorted = Object.entries(rhRes.percentages).sort((a, b) => b[1] - a[1]);
+                for (let [ph, pct] of sorted) {
+                    normalHtml += `<li>Rhesus <strong>(${ph})</strong> <span class="badge">${pct}%</span></li>`;
+                }
+                normalHtml += `</ul>`;
+            }
+            normalHtml += `<small class="note">*Persentase mencerminkan peluang relatif berdasarkan Hukum Mendel dan seluruh data anak yang diinput.</small></div>`;
+        }
+
+        if (normalHtml !== '') {
+            resBox.style.display = 'block';
+            document.getElementById('resultTitle').innerText = "Hasil Analisis Genetik";
+            resContent.innerHTML = normalHtml;
+        }
+    }
+
+    // Inisialisasi tampilan awal
+    renderChildren();
+</script>
+</body>
+</html>
